@@ -1,13 +1,15 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity.Entities;
 
 public class ChatController : MonoBehaviour
 {
-    public Button sendButton;
-    public Label labelText;
-    public ScrollView scrollView;
-    public TextField chatInputField;
+    private Button sendButton;
+    private Label labelText;
+    private ScrollView scrollView;
+    private TextField chatInputField;
 
     // Start is called before the first frame update
     void Start()
@@ -19,15 +21,12 @@ public class ChatController : MonoBehaviour
 
         //chatInputField
         sendButton.clicked += SendButtonPressed;
-
-
-
-        labelText.text = "HolaMundo";
     }
 
     void SendButtonPressed()
     {
         labelText.text = chatInputField.text;
-        //chatInputField.text = "";
+        World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<BaseTransportClientSystem>().SendChatMessageToServer(labelText.text);
+        chatInputField.value = "";
     }
 }

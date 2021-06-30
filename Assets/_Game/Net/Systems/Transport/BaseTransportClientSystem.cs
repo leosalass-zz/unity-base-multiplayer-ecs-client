@@ -7,7 +7,7 @@ using Unity.Jobs;
 using Unity.Collections;
 using Unity.Networking.Transport;
 
-public class BaseTransportClient : SystemBase
+public class BaseTransportClientSystem : SystemBase
 {
     public NetworkDriver m_Driver;
     public NativeArray<NetworkConnection> m_Connection;
@@ -15,7 +15,15 @@ public class BaseTransportClient : SystemBase
 
     public JobHandle ClientJobHandle;
 
-    protected override void OnCreate()
+#if UNITY_EDITOR
+    protected override void OnCreate() { Init(); }
+
+    protected override void OnDestroy() { Shutdown(); }
+
+    protected override void OnUpdate() { UpdateClient(); }
+#endif
+
+    public virtual void Init()
     {
         m_Driver = NetworkDriver.Create();
 
@@ -24,17 +32,19 @@ public class BaseTransportClient : SystemBase
         var endpoint = NetworkEndPoint.LoopbackIpv4;
         endpoint.Port = 9000;
         m_Connection[0] = m_Driver.Connect(endpoint);
+
+        Debug.Log("IsCreated: " + m_Connection[0].IsCreated);
     }
-    
-    protected override void OnDestroy()
+    public virtual void Shutdown()
     {
+        Debug.LogError("disconected from the server");
         ClientJobHandle.Complete();
         m_Connection.Dispose();
         m_Driver.Dispose();
         m_Done.Dispose();
     }
-    
-    protected override void OnUpdate()
+
+    public virtual void UpdateClient()
     {
         ClientJobHandle.Complete();
         var job = new ClientUpdateJob
@@ -45,6 +55,22 @@ public class BaseTransportClient : SystemBase
         };
         ClientJobHandle = m_Driver.ScheduleUpdate();
         ClientJobHandle = job.Schedule(ClientJobHandle);
+    }
+
+    public void SendChatMessageToServer(string chatMessage)
+    {
+        ClientJobHandle.Complete();
+        if (!m_Connection[0].IsCreated)
+        {
+            Debug.Log("Something went wrong sending the message");
+            return;
+        }
+
+        DataStreamWriter writer;
+        m_Driver.BeginSend(m_Connection[0], out writer);
+        Net_ChatMessage net_ChatMessage = new Net_ChatMessage(chatMessage);
+        net_ChatMessage.Serialize(ref writer);
+        m_Driver.EndSend(writer);
     }
 }
 
@@ -59,7 +85,7 @@ struct ClientUpdateJob : IJob
         if (!connection[0].IsCreated)
         {
             if (done[0] != 1)
-                Debug.Log("Something went wrong during connect");
+                Debug.Log("Something went wrong during connect, IsCreated: " + connection[0].IsCreated + " done: " + done[0]);
             return;
         }
 

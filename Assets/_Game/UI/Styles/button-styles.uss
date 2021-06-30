@@ -19,7 +19,7 @@
     position: absolute;
     left: auto;
     top: auto;
-    background-color: rgba(97, 236, 142, 0.87);
+    background-color: rgba(97, 218, 236, 0.9);
     right: auto;
     bottom: auto;
 }
@@ -32,7 +32,8 @@
     position: absolute;
     left: auto;
     top: auto;
-    background-color: rgba(5, 101, 36, 0.87);
+    background-color: rgba(51, 124, 147, 0.9);
     right: auto;
     bottom: auto;
+    color: rgba(255, 255, 255, 255);
 }
