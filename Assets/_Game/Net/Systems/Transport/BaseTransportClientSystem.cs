@@ -6,6 +6,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Collections;
 using Unity.Networking.Transport;
+/*
 
 public class BaseTransportClientSystem : SystemBase
 {
@@ -101,8 +102,79 @@ struct ClientUpdateJob : IJob
             else if (cmd == NetworkEvent.Type.Disconnect)
             {
                 Debug.Log("Client got disconnected from server");
-                connection[0] = default(NetworkConnection);
+                //connection[0] = default(NetworkConnection);
             }
         }
+    }
+}*/
+
+
+public class BaseTransportClientSystem : SystemBase
+{
+    public NetworkDriver m_Driver;
+    public NetworkConnection m_Connection;
+    public bool m_Done;
+    int counter;
+
+    protected override void OnCreate()
+    {
+        m_Driver = NetworkDriver .Create();
+        m_Connection = default(NetworkConnection);
+
+        var endpoint = NetworkEndPoint.LoopbackIpv4;
+        endpoint.Port = 5522;
+        m_Connection = m_Driver.Connect(endpoint);
+        counter = 0;
+    }
+
+    protected override void OnDestroy()
+    {
+        m_Driver.Dispose();
+    }
+
+    protected override void OnUpdate()
+    {
+        m_Driver.ScheduleUpdate().Complete();
+
+        if (!m_Connection.IsCreated)
+        {
+            if (!m_Done)
+                Debug.Log("Something went wrong during connect");
+            return;
+        }
+
+        DataStreamReader stream;
+        NetworkEvent.Type cmd;
+
+        while ((cmd = m_Connection.PopEvent(m_Driver, out stream)) != NetworkEvent.Type.Empty)
+        {
+            if (cmd == NetworkEvent.Type.Connect)
+            {
+                Debug.LogWarning("We are now connected to the server");
+            }
+            else if (cmd == NetworkEvent.Type.Disconnect)
+            {
+                Debug.LogError("Client got disconnected from server");
+                m_Connection = default(NetworkConnection);
+            }
+        }
+        counter++;
+        string counterStr = "counter: " + counter;
+        SendChatMessageToServer(counterStr);
+    }
+
+    public void SendChatMessageToServer(string chatMessage)
+    {
+        if (!m_Connection.IsCreated)
+        {
+            Debug.Log("Something went wrong sending the message");
+            return;
+        }
+
+        DataStreamWriter writer;
+        m_Driver.BeginSend(m_Connection, out writer);
+        Net_ChatMessage net_ChatMessage = new Net_ChatMessage(chatMessage);
+        net_ChatMessage.Serialize(ref writer);
+        m_Driver.EndSend(writer);
     }
 }
