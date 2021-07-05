@@ -26,7 +26,7 @@ public class ChatController : MonoBehaviour
     void SendButtonPressed()
     {
         labelText.text = chatInputField.text;
-        World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<BaseTransportClientSystem>().SendChatMessageToServer(labelText.text);
+        World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<LNLClientSystem>().SendChatMessageToServer(labelText.text);
         chatInputField.value = "";
     }
 }
