@@ -1,17 +1,23 @@
 using System.Net;
 using System.Net.Sockets;
-using UnityEngine;
-using Unity.Entities;
 using LiteNetLib;
 using LiteNetLib.Utils;
+
+using UnityEngine;
+using Unity.Entities;
+using Unity.Transforms;
+using Unity.Rendering;
+using Unity.Mathematics;
+
 
 
 public class LNLClientSystem : SystemBase, INetEventListener
 {
-    //TODO: start creating the NetworkEntity with NetManager, NetDataWriter, NetPeer as components
-    private NetManager _netClient;
-    private NetDataWriter _dataWriter;
-    private NetPeer serverPeer;
+    private NetManager _netManager;
+    private NetDataWriter _writer;
+    private NetPeer _server;
+
+    private EntitySpawner _entitySpawner;
 
 #if UNITY_EDITOR
     protected override void OnCreate() { Init(); }
@@ -21,47 +27,35 @@ public class LNLClientSystem : SystemBase, INetEventListener
     protected override void OnUpdate() { UpdateClient(); }
 #endif
 
-    //[SerializeField] private GameObject _clientBall;
-    //[SerializeField] private GameObject _clientBallInterpolated;
-
-    ///private float _newBallPosX;
-    //private float _oldBallPosX;
-    //private float _lerpTime;
-
     public virtual void Init()
     {
-        _netClient = new NetManager(this);
-        _netClient.UnconnectedMessagesEnabled = true;
-        _netClient.UpdateTime = 15;
-        _netClient.Start();
+        _netManager = new NetManager(this);
+        _netManager.UnconnectedMessagesEnabled = true;
+        _netManager.UpdateTime = 15;
+        _netManager.Start();
 
-        _dataWriter = new NetDataWriter();
+        _writer = new NetDataWriter();
+
+        _entitySpawner = new EntitySpawner();
     }
 
     public virtual void UpdateClient()
     {
-        _netClient.PollEvents();
+        _netManager.PollEvents();
 
-        var peer = _netClient.FirstPeer;
+        var peer = _netManager.FirstPeer;
         if (IsConnectedToServer())
         {
-            /*//Fixed delta set to 0.05
-            var pos = _clientBallInterpolated.transform.position;
-            pos.x = Mathf.Lerp(_oldBallPosX, _newBallPosX, _lerpTime);
-            _clientBallInterpolated.transform.position = pos;
-
-            //Basic lerp
-            _lerpTime += Time.deltaTime / Time.fixedDeltaTime;**/
         }
         else
         {
-            _netClient.SendBroadcast(new byte[] { 1 }, 5000);
+            _netManager.SendBroadcast(new byte[] { 1 }, 5000);
         }
     }
 
     private bool IsConnectedToServer()
     {
-        var peer = _netClient.FirstPeer;
+        var peer = _netManager.FirstPeer;
         if (peer != null && peer.ConnectionState == ConnectionState.Connected) return true;
 
         return false;
@@ -69,14 +63,17 @@ public class LNLClientSystem : SystemBase, INetEventListener
 
     public virtual void Shutdown()
     {
-        if (_netClient != null)
-            _netClient.Stop();
+        if (_netManager != null)
+            _netManager.Stop();
     }
 
     public void OnPeerConnected(NetPeer peer)
     {
         Debug.Log("[CLIENT] We connected to " + peer.EndPoint);
-        serverPeer = peer;
+        _server = peer;
+
+        float3 pos = new float3(2f, 0, 4f);
+        _entitySpawner.SpawnPlayerCharacterEntity(pos);
     }
 
     public void OnNetworkError(IPEndPoint endPoint, SocketError socketErrorCode)
@@ -86,24 +83,14 @@ public class LNLClientSystem : SystemBase, INetEventListener
 
     public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
     {
-        //_newBallPosX = reader.GetFloat();
-
-        /*var pos = _clientBall.transform.position;
-
-        _oldBallPosX = pos.x;
-        pos.x = _newBallPosX;
-
-        _clientBall.transform.position = pos;
-
-        _lerpTime = 0f;*/
     }
 
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
     {
-        if (messageType == UnconnectedMessageType.BasicMessage && _netClient.ConnectedPeersCount == 0 && reader.GetInt() == 1)
+        if (messageType == UnconnectedMessageType.BasicMessage && _netManager.ConnectedPeersCount == 0 && reader.GetInt() == 1)
         {
             Debug.Log("[CLIENT] Received discovery response. Connecting to: " + remoteEndPoint);
-            _netClient.Connect(remoteEndPoint, "sample_app");
+            _netManager.Connect(remoteEndPoint, "sample_app");
         }
     }
 
@@ -120,6 +107,7 @@ public class LNLClientSystem : SystemBase, INetEventListener
     public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
     {
         Debug.Log("[CLIENT] We disconnected because " + disconnectInfo.Reason);
+        _entitySpawner.DestroyAndResetAllEntities();
     }
 
     public void SendChatMessageToServer(string chatMessage)
@@ -127,12 +115,12 @@ public class LNLClientSystem : SystemBase, INetEventListener
         Debug.Log(chatMessage);
         if (IsConnectedToServer())
         {
-            _dataWriter.Reset();
-            _dataWriter.Put((int)MessageCode.CHAT_MESSAGE);
-            _dataWriter.Put(chatMessage);
-            serverPeer.Send(_dataWriter, DeliveryMethod.ReliableOrdered);
+            _writer.Reset();
+            _writer.Put((int)MessageCode.CHAT_MESSAGE);
+            _writer.Put(chatMessage);
+            _server.Send(_writer, DeliveryMethod.ReliableOrdered);
         }
-        
+
     }
 }
 
