@@ -5,8 +5,6 @@ using LiteNetLib.Utils;
 
 using UnityEngine;
 using Unity.Entities;
-using Unity.Transforms;
-using Unity.Rendering;
 using Unity.Mathematics;
 
 public class LNL_ClientSystem : SystemBase, INetEventListener
