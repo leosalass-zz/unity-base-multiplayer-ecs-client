@@ -1,7 +1,6 @@
 using UnityEngine;
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Rendering;
 using Unity.Mathematics;
 using System.Collections.Generic;
 
