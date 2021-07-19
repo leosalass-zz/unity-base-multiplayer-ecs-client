@@ -1,7 +1,6 @@
 using UnityEngine;
 using Unity.Entities;
 using Unity.Transforms;
-using Unity.Rendering;
 using Unity.Mathematics;
 using System.Collections.Generic;
 
@@ -37,7 +36,9 @@ public class PlayerCharacterEntitySpawner : MonoBehaviour
         {
             Value = pos
         });
+#if UNITY_EDITOR
         entityManager.SetName(entity, "PlayercharacterEntity");
+#endif
         _entities.Add(entity);
 
     }
