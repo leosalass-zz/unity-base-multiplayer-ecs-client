@@ -15,13 +15,13 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
 
     private PlayerCharacterEntitySpawner _entitySpawner;
 
-#if UNITY_EDITOR
+    //#if UNITY_EDITOR
     protected override void OnCreate() { Init(); }
 
     protected override void OnDestroy() { Shutdown(); }
 
     protected override void OnUpdate() { UpdateClient(); }
-#endif
+    //#endif
 
     public virtual void Init()
     {

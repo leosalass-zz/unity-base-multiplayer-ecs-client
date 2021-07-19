@@ -36,7 +36,9 @@ public class PlayerCharacterEntitySpawner : MonoBehaviour
         {
             Value = pos
         });
+#if UNITY_EDITOR
         entityManager.SetName(entity, "PlayercharacterEntity");
+#endif
         _entities.Add(entity);
 
     }
