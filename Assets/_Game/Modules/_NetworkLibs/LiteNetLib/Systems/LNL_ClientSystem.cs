@@ -133,10 +133,10 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
 
     private void ReceiveChatMessage(NetPeer server, NetPacketReader reader, DeliveryMethod deliveryMethod)
     {
-        string message = reader.GetString();
+        string message = LNL_ChatMessageSerializer.Read(ref reader);
 
-        Debug.LogWarning("Chat Mesage received from: " + server.EndPoint + " with the connection id: " + server.Id);
-        Debug.LogWarning("Mesage: " + message);
+        Debug.LogWarning("Chat Message received from: " + server.EndPoint + " with the connection id: " + server.Id);
+        Debug.LogWarning("Message: " + message);
     }
 
     private void ReceiveCreatePlayerCharacterMessage(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
@@ -144,26 +144,22 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
         PlayerCharacterEntityMessage playerCharacterEntityMessage = LNL_PlayerCharacterEntityMessageSerializer.Read(ref reader);
         _entitySpawner.SpawnPlayerCharacterEntity(peer.Id, playerCharacterEntityMessage);
     }
+    #endregion
 
+    #region Outgoing Network Messages
     public void SendChatMessageToServer(Net_ChatMessage message)
     {
-        if (message.Message.Length == 0) return;
-
-        Debug.Log("Mesagge: " + message.Message);
-
+        Debug.Log("Message: " + message.Message);
         if (IsConnectedToServer())
         {
-            _writer.Reset();
-            _writer.Put((int)message.Code);
-            _writer.Put(message.Message);
+            LNL_ChatMessageSerializer.Write(message, _server, ref _writer);
             _server.Send(_writer, DeliveryMethod.ReliableOrdered);
         }
-
     }
 
     public void SendInputStatesToServer(Net_InputStateMessage message)
     {
-        Debug.Log("Mesagge: " + message.Code);
+        Debug.Log("Message: " + message.Code);
         if (IsConnectedToServer())
         {
             LNL_InputStateSerializer.Write(ref _writer, message);
