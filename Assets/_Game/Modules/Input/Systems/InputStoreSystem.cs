@@ -6,7 +6,6 @@ using Unity.Mathematics;
 public class InputStoreSystem : SystemBase
 {
     private PlayerActions playerActions;
-    public bool Enabled { get; set; }
 
     //Called when this system is created.
     protected override void OnCreate()
