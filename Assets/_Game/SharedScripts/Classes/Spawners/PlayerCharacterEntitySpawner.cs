@@ -4,7 +4,7 @@ using Unity.Transforms;
 using Unity.Mathematics;
 using System.Collections.Generic;
 
-public class PlayerCharacterEntitySpawner : MonoBehaviour
+public class PlayerCharacterEntitySpawner
 {
     private EntityManager entityManager;
     private EntityArchetype playerCharacterArchetype;
@@ -29,15 +29,20 @@ public class PlayerCharacterEntitySpawner : MonoBehaviour
         playerCharacterEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(prefab, settings);
     }
 
-    public void SpawnPlayerCharacterEntity(float3 pos)
+    public void SpawnPlayerCharacterEntity(float3 pos, int peerId)
     {
         Entity entity = entityManager.Instantiate(playerCharacterEntityPrefab);
         entityManager.SetComponentData(entity, new Translation
         {
             Value = pos
         });
+        entityManager.SetComponentData(entity, new PlayerCharacterConnectionComponent
+        {
+
+            id = peerId
+        });
 #if UNITY_EDITOR
-        entityManager.SetName(entity, "PlayercharacterEntity");
+        entityManager.SetName(entity, "PlayercharacterEntity" + peerId);
 #endif
         _entities.Add(entity);
 
