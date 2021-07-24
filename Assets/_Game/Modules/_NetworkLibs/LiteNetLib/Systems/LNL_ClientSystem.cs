@@ -63,10 +63,15 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
             _netManager.Stop();
     }
 
-    public void OnPeerConnected(NetPeer peer)
+    public void OnPeerConnected(NetPeer server)
     {
-        Debug.Log("[CLIENT] We connected to " + peer.EndPoint);
-        _server = peer;
+        _server = server;
+        
+        _writer.Reset();
+        _writer.Put((int)MessageCode.SPAWN_PLAYER_CHARACTER_ENTITY);
+        server.Send(_writer, DeliveryMethod.ReliableUnordered);
+
+        Debug.Log("[CLIENT] We connected to " + server.EndPoint);
     }
 
     public void OnNetworkError(IPEndPoint endPoint, SocketError socketErrorCode)
@@ -77,8 +82,9 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
     public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
     {
         MessageCode code = (MessageCode)reader.GetInt();
-        
-        if(code == MessageCode.CREATE_PLAYER_CHARACTER) {
+
+        if (code == MessageCode.SPAWN_PLAYER_CHARACTER_ENTITY)
+        {
             float x = (float)reader.GetFloat();
             float y = (float)reader.GetFloat();
             float z = (float)reader.GetFloat();
