@@ -17,10 +17,13 @@ public class ChatController : MonoBehaviour
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
         sendButton = root.Q<Button>("send-button");
         labelText = root.Q<Label>("label-text");
-        chatInputField = root.Q<TextField>("chat-input");
+        chatInputField = root.Q<TextField>("chat-input");        
 
         //chatInputField
         sendButton.clicked += SendButtonPressed;
+
+        chatInputField.RegisterCallback<FocusInEvent>(OnChatInputFocusIn);
+        chatInputField.RegisterCallback<FocusOutEvent>(OnChatInputFocusOut);
     }
 
     void SendButtonPressed()
@@ -31,5 +34,15 @@ public class ChatController : MonoBehaviour
         chatMessage.Send();
 
         chatInputField.value = "";
+    }
+
+    void OnChatInputFocusIn(FocusInEvent evt)
+    {
+        World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<InputStoreSystem>().Enabled = false;
+    }
+
+    void OnChatInputFocusOut(FocusOutEvent evt)
+    {
+        World.DefaultGameObjectInjectionWorld.GetOrCreateSystem<InputStoreSystem>().Enabled = true;
     }
 }

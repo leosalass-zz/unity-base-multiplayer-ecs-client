@@ -6,11 +6,13 @@ using Unity.Mathematics;
 public class InputStoreSystem : SystemBase
 {
     private PlayerActions playerActions;
+    public bool Enabled { get; set; }
 
     //Called when this system is created.
     protected override void OnCreate()
     {
         playerActions = new PlayerActions();
+        Enabled = true;
     }
 
     protected override void OnStartRunning()
@@ -27,6 +29,8 @@ public class InputStoreSystem : SystemBase
 
     protected override void OnUpdate()
     {
+        if (!Enabled) return;
+
         Vector2 moveDirection = playerActions.Grounded.Move.ReadValue<Vector2>();
 
         if (moveDirection != Vector2.zero)
@@ -41,7 +45,7 @@ public class InputStoreSystem : SystemBase
 
                 DynamicBuffer<InputState> inputStateBuffer = buffer.Reinterpret<InputState>();
                 inputStateBuffer.Add(state);
-                
+
                 DynamicBuffer<InputState> serverInputStateBuffer = serverBuffer.Reinterpret<InputState>();
                 serverInputStateBuffer.Add(state);
 
