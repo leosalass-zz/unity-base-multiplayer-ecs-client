@@ -29,16 +29,15 @@ public class PlayerCharacterEntitySpawner
         playerCharacterEntityPrefab = GameObjectConversionUtility.ConvertGameObjectHierarchy(prefab, settings);
     }
 
-    public void SpawnPlayerCharacterEntity(float3 pos, int peerId)
+    public void SpawnPlayerCharacterEntity(int peerId, PlayerCharacterEntityMessage playerCharacterEntityMessage)
     {
         Entity entity = entityManager.Instantiate(playerCharacterEntityPrefab);
         entityManager.SetComponentData(entity, new Translation
         {
-            Value = pos
+            Value = playerCharacterEntityMessage.Position
         });
         entityManager.SetComponentData(entity, new PlayerCharacterConnectionComponent
         {
-
             id = peerId
         });
 #if UNITY_EDITOR

@@ -7,7 +7,7 @@ public class PlayerCharacterEntityMessage : NetMessage
 
     public PlayerCharacterEntityMessage(float3 position)
     {
-        Code = MessageCode.CREATE_PLAYER_CHARACTER;
+        Code = MessageCode.SPAWN_PLAYER_CHARACTER_ENTITY;
         Position = position;
     }
 }

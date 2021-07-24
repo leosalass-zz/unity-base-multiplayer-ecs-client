@@ -15,6 +15,7 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
 
     private PlayerCharacterEntitySpawner _entitySpawner;
 
+    #region System Methods
     //#if UNITY_EDITOR
     protected override void OnCreate() { Init(); }
 
@@ -22,7 +23,9 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
 
     protected override void OnUpdate() { UpdateClient(); }
     //#endif
+    #endregion
 
+    #region System Methods Renamed
     public virtual void Init()
     {
         _netManager = new NetManager(this);
@@ -49,6 +52,14 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
         }
     }
 
+    public virtual void Shutdown()
+    {
+        if (_netManager != null)
+            _netManager.Stop();
+    }
+    #endregion
+
+    #region INetEventListener Methods
     private bool IsConnectedToServer()
     {
         var peer = _netManager.FirstPeer;
@@ -57,16 +68,15 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
         return false;
     }
 
-    public virtual void Shutdown()
+    public void OnPeerConnected(NetPeer server)
     {
-        if (_netManager != null)
-            _netManager.Stop();
-    }
+        _server = server;
 
-    public void OnPeerConnected(NetPeer peer)
-    {
-        Debug.Log("[CLIENT] We connected to " + peer.EndPoint);
-        _server = peer;
+        _writer.Reset();
+        _writer.Put((int)MessageCode.SPAWN_PLAYER_CHARACTER_ENTITY);
+        server.Send(_writer, DeliveryMethod.ReliableUnordered);
+
+        Debug.Log("[CLIENT] We connected to " + server.EndPoint);
     }
 
     public void OnNetworkError(IPEndPoint endPoint, SocketError socketErrorCode)
@@ -74,18 +84,9 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
         Debug.Log("[CLIENT] We received error " + socketErrorCode);
     }
 
-    public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
+    public void OnNetworkReceive(NetPeer server, NetPacketReader reader, DeliveryMethod deliveryMethod)
     {
-        MessageCode code = (MessageCode)reader.GetInt();
-        
-        if(code == MessageCode.CREATE_PLAYER_CHARACTER) {
-            float x = (float)reader.GetFloat();
-            float y = (float)reader.GetFloat();
-            float z = (float)reader.GetFloat();
-            float3 position = new float3(x, y, z);
-
-            _entitySpawner.SpawnPlayerCharacterEntity(position, peer.Id);
-        }
+        NetworkMessagesHandler(server, reader, deliveryMethod);
     }
 
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
@@ -112,31 +113,59 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
         Debug.Log("[CLIENT] We disconnected because " + disconnectInfo.Reason);
         _entitySpawner.DestroyAndResetAllEntities();
     }
+    #endregion
 
+    #region Incoming Network Messages
+    private void NetworkMessagesHandler(NetPeer server, NetPacketReader reader, DeliveryMethod deliveryMethod)
+    {
+        MessageCode code = (MessageCode)reader.GetInt();
+        switch (code)
+        {
+            case MessageCode.CHAT_MESSAGE:
+                ReceiveChatMessage(server, reader, deliveryMethod);
+                break;
+
+            case MessageCode.SPAWN_PLAYER_CHARACTER_ENTITY:
+                ReceiveCreatePlayerCharacterMessage(server, reader, deliveryMethod);
+                break;
+        }
+    }
+
+    private void ReceiveChatMessage(NetPeer server, NetPacketReader reader, DeliveryMethod deliveryMethod)
+    {
+        string message = LNL_ChatMessageSerializer.Read(ref reader);
+
+        Debug.LogWarning("Chat Message received from: " + server.EndPoint + " with the connection id: " + server.Id);
+        Debug.LogWarning("Message: " + message);
+    }
+
+    private void ReceiveCreatePlayerCharacterMessage(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
+    {
+        PlayerCharacterEntityMessage playerCharacterEntityMessage = LNL_PlayerCharacterEntityMessageSerializer.Read(ref reader);
+        _entitySpawner.SpawnPlayerCharacterEntity(peer.Id, playerCharacterEntityMessage);
+    }
+    #endregion
+
+    #region Outgoing Network Messages
     public void SendChatMessageToServer(Net_ChatMessage message)
     {
-        if (message.Message.Length == 0) return;
-
-        Debug.Log("Mesagge: " + message.Message);
-
+        Debug.Log("Message: " + message.Message);
         if (IsConnectedToServer())
         {
-            _writer.Reset();
-            _writer.Put((int)message.Code);
-            _writer.Put(message.Message);
+            LNL_ChatMessageSerializer.Write(message, _server, ref _writer);
             _server.Send(_writer, DeliveryMethod.ReliableOrdered);
         }
-
     }
 
     public void SendInputStatesToServer(Net_InputStateMessage message)
     {
-        Debug.Log("Mesagge: " + message.Code);
+        Debug.Log("Message: " + message.Code);
         if (IsConnectedToServer())
         {
             LNL_InputStateSerializer.Write(ref _writer, message);
             _server.Send(_writer, DeliveryMethod.ReliableOrdered);
         }
     }
+    #endregion
 }
 
