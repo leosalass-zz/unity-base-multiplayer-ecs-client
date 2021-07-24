@@ -11,7 +11,6 @@ public class InputStoreSystem : SystemBase
     protected override void OnCreate()
     {
         playerActions = new PlayerActions();
-        Enabled = true;
     }
 
     protected override void OnStartRunning()
@@ -28,8 +27,6 @@ public class InputStoreSystem : SystemBase
 
     protected override void OnUpdate()
     {
-        if (!Enabled) return;
-
         Vector2 moveDirection = playerActions.Grounded.Move.ReadValue<Vector2>();
 
         if (moveDirection != Vector2.zero)
