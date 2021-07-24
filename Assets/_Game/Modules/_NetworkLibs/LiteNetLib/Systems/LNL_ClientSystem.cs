@@ -67,9 +67,6 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
     {
         Debug.Log("[CLIENT] We connected to " + peer.EndPoint);
         _server = peer;
-
-        float3 pos = new float3(2f, 0, 4f);
-        _entitySpawner.SpawnPlayerCharacterEntity(pos);
     }
 
     public void OnNetworkError(IPEndPoint endPoint, SocketError socketErrorCode)
@@ -79,6 +76,16 @@ public class LNL_ClientSystem : SystemBase, INetEventListener
 
     public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod deliveryMethod)
     {
+        MessageCode code = (MessageCode)reader.GetInt();
+        
+        if(code == MessageCode.CREATE_PLAYER_CHARACTER) {
+            float x = (float)reader.GetFloat();
+            float y = (float)reader.GetFloat();
+            float z = (float)reader.GetFloat();
+            float3 position = new float3(x, y, z);
+
+            _entitySpawner.SpawnPlayerCharacterEntity(position, peer.Id);
+        }
     }
 
     public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType)
